@@ -19,3 +19,6 @@ export const SEMI_FINALS = [
 ];
 
 export const ROUND_LABELS = { 1: 'Lượt 1', 2: 'Lượt 2', 3: 'Lượt 3' };
+
+// Chung kết: Thắng BK1 – Thắng BK2
+export const FINAL = { id: 'F', home: 'SF1', away: 'SF2', time: '16:30' };

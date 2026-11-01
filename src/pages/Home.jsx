@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { TOURNAMENT } from "../data/tournament.js";
 import { CONTACTS } from "../data/contacts.js";
 import InfoCard from "../components/InfoCard.jsx";
-import mainBg from "../Asset/mainbg.png";
+import mainBg from "../Asset/mainbg1.png";
 import ContactCard from "../components/ContactCard.jsx";
 import {
   ArrowRightIcon,
@@ -22,86 +22,78 @@ export default function Home() {
   return (
     <>
       {/* ===== HERO ===== */}
+        {/* ===== HERO ===== */}
       <section className="relative overflow-hidden bg-pwc-black text-white">
-        {/* Họa tiết nền trang trí */}
-        {/* Ảnh nền Hero + lớp phủ tối để chữ dễ đọc */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          aria-hidden="true"
-        >
-          <img
-            src={mainBg}
-            alt=""
-            className="h-full w-full object-cover object-center"
-          />
-          {/* Mobile: phủ tối đều. Desktop: tối bên trái (chỗ chữ), sáng dần sang phải */}
-          <div className="absolute inset-0 bg-black/70 lg:bg-transparent lg:bg-gradient-to-r lg:from-black lg:via-black/75 lg:to-black/10" />
-          {/* Viền cam nhẹ phía dưới cho hợp tông PwC */}
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-pwc-orange/25 to-transparent" />
+        {/* Ảnh nền Hero + lớp phủ nhẹ để ảnh rõ mà chữ vẫn đọc được */}
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <img src={mainBg} alt="" className="h-full w-full object-cover object-[center_30%]" />
+          {/* Tối nhẹ phía trên (chỗ tiêu đề) */}
+          <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-black/60 to-transparent" />
+          {/* Tối nhẹ phía dưới (chỗ nút + số liệu) */}
+          <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/70 to-transparent" />
+          {/* Mobile: phủ thêm 1 lớp để chữ dễ đọc */}
+          <div className="absolute inset-0 bg-black/35 lg:hidden" />
         </div>
 
-        <div className="container-page relative py-24 sm:py-32">
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-pwc-amber"
-          >
-            <span
-              className="h-2 w-2 rounded-full bg-pwc-amber"
-              aria-hidden="true"
-            />
-            Giải đấu nội bộ
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mt-6 max-w-3xl text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl"
-          >
-            {TOURNAMENT.name}
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mt-5 max-w-xl text-lg font-medium text-white/80 sm:text-xl"
-          >
-            {TOURNAMENT.slogan}
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-10 flex flex-wrap gap-3"
-          >
-            <Link
-              to="/draw"
-              className="btn-primary px-7 py-4 text-base"
-              aria-label="Đến trang bốc thăm chia bảng"
+        {/* Khung nội dung cao bằng màn hình: tiêu đề ở trên, nút + số liệu ở dưới */}
+        <div className="container-page relative flex min-h-[calc(100vh-4rem)] flex-col pb-10 pt-12 [text-shadow:0_2px_12px_rgba(0,0,0,0.6)] sm:pt-16">
+          {/* ----- Phần trên: tiêu đề ----- */}
+          <div>
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-pwc-amber"
             >
-              Đến trang bốc thăm <ArrowRightIcon />
-            </Link>
-            <Link to="/teams" className="btn-ghost-light px-7 py-4 text-base">
-              Xem danh sách đội
-            </Link>
-          </motion.div>
+              <span className="h-2 w-2 rounded-full bg-pwc-amber" aria-hidden="true" />
+              Giải đấu nội bộ
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl"
+            >
+              {TOURNAMENT.name}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mt-3 max-w-xl text-lg font-medium text-white/90 sm:text-xl"
+            >
+              {TOURNAMENT.slogan}
+            </motion.p>
+          </div>
 
-          <dl className="mt-14 grid max-w-xl grid-cols-3 gap-6 border-t border-white/10 pt-8">
-            {[
-              { k: "Đội tham dự", v: "6" },
-              { k: "Bảng đấu", v: "2" },
-              { k: "Đội / bảng", v: "3" },
-            ].map((s) => (
-              <div key={s.k}>
-                <dt className="text-xs uppercase tracking-wider text-white/60">
-                  {s.k}
-                </dt>
-                <dd className="mt-1 text-3xl font-black text-pwc-amber sm:text-4xl">
-                  {s.v}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {/* ----- Phần dưới: nút + số liệu (mt-auto đẩy xuống đáy) ----- */}
+          <div className="mt-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-wrap gap-3"
+            >
+              <Link to="/draw" className="btn-primary px-7 py-4 text-base shadow-lg" aria-label="Đến trang bốc thăm chia bảng">
+                Đến trang bốc thăm <ArrowRightIcon />
+              </Link>
+              <Link to="/teams" className="btn-ghost-light bg-black/30 px-7 py-4 text-base backdrop-blur-sm">
+                Xem danh sách đội
+              </Link>
+            </motion.div>
+
+            <dl className="mt-8 grid max-w-xl grid-cols-3 gap-6 border-t border-white/20 pt-6">
+              {[
+                { k: 'Đội tham dự', v: '6' },
+                { k: 'Bảng đấu', v: '2' },
+                { k: 'Đội / bảng', v: '3' },
+              ].map((s) => (
+                <div key={s.k}>
+                  <dt className="text-xs uppercase tracking-wider text-white/80">{s.k}</dt>
+                  <dd className="mt-1 text-3xl font-black text-pwc-amber sm:text-4xl">{s.v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
       </section>
 

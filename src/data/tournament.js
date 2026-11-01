@@ -4,7 +4,7 @@
 export const TOURNAMENT = {
   name: "PwC Internal Football Cup 2026",
   shortName: "PwC Internal Cup",
-  slogan: "One Firm. One Team. One Goal.",
+//   slogan: "One Firm. One Team. One Goal.",
   intro:
     "PwC Internal Cup là sân chơi thể thao thường niên dành cho toàn thể nhân viên, nơi các Line of Service gặp gỡ, thi đấu và gắn kết bên ngoài công việc hằng ngày.",
   purposes: [
