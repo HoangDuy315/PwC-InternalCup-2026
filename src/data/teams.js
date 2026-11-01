@@ -63,7 +63,7 @@ const RAW_TEAMS = [
       "Hoàng Đình Chương",
       "Đặng Cao Trình",
       "Võ Văn Hữu Nghĩa",
-      "Nguyễn Hồ Anh Hùng",
+      "Nguyễn Hồ Anh Hưng",
       "Dương Nguyễn Bảo Hiếu",
       "Nguyễn Trần Minh Duy",
     ],
