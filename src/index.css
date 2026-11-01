@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white font-sans text-pwc-dark antialiased;
+  }
+  /* Focus state rõ ràng cho người dùng bàn phím */
+  :focus-visible {
+    outline: 3px solid #eb8c00;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-pwc-orange text-white hover:bg-pwc-orangeDark;
+  }
+  .btn-amber {
+    @apply btn bg-pwc-amber text-pwc-black hover:bg-[#ffa21f];
+  }
+  .btn-dark {
+    @apply btn bg-pwc-dark text-white hover:bg-pwc-black;
+  }
+  .btn-outline {
+    @apply btn border-2 border-pwc-dark bg-white text-pwc-dark hover:bg-pwc-light;
+  }
+  .btn-ghost-light {
+    @apply btn border-2 border-white/70 text-white hover:bg-white/10;
+  }
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.2em] text-pwc-orangeDark;
+  }
+  .section-title {
+    @apply mt-2 text-3xl font-extrabold tracking-tight text-pwc-black sm:text-4xl;
+  }
+}
+
+/* Hỗ trợ người dùng muốn giảm chuyển động */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

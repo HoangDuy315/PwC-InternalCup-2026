@@ -1,0 +1,232 @@
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { TOURNAMENT } from "../data/tournament.js";
+import { CONTACTS } from "../data/contacts.js";
+import InfoCard from "../components/InfoCard.jsx";
+import mainBg from "../Asset/mainbg.png";
+import ContactCard from "../components/ContactCard.jsx";
+import {
+  ArrowRightIcon,
+  CalendarIcon,
+  GridIcon,
+  HeartIcon,
+  LinkIcon,
+  MapPinIcon,
+  TrophyIcon,
+  UsersIcon,
+} from "../components/Icons.jsx";
+
+const PURPOSE_ICONS = [LinkIcon, HeartIcon, UsersIcon];
+
+export default function Home() {
+  return (
+    <>
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden bg-pwc-black text-white">
+        {/* Họa tiết nền trang trí */}
+        {/* Ảnh nền Hero + lớp phủ tối để chữ dễ đọc */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden="true"
+        >
+          <img
+            src={mainBg}
+            alt=""
+            className="h-full w-full object-cover object-center"
+          />
+          {/* Mobile: phủ tối đều. Desktop: tối bên trái (chỗ chữ), sáng dần sang phải */}
+          <div className="absolute inset-0 bg-black/70 lg:bg-transparent lg:bg-gradient-to-r lg:from-black lg:via-black/75 lg:to-black/10" />
+          {/* Viền cam nhẹ phía dưới cho hợp tông PwC */}
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-pwc-orange/25 to-transparent" />
+        </div>
+
+        <div className="container-page relative py-24 sm:py-32">
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-pwc-amber"
+          >
+            <span
+              className="h-2 w-2 rounded-full bg-pwc-amber"
+              aria-hidden="true"
+            />
+            Giải đấu nội bộ
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mt-6 max-w-3xl text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl"
+          >
+            {TOURNAMENT.name}
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mt-5 max-w-xl text-lg font-medium text-white/80 sm:text-xl"
+          >
+            {TOURNAMENT.slogan}
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-10 flex flex-wrap gap-3"
+          >
+            <Link
+              to="/draw"
+              className="btn-primary px-7 py-4 text-base"
+              aria-label="Đến trang bốc thăm chia bảng"
+            >
+              Đến trang bốc thăm <ArrowRightIcon />
+            </Link>
+            <Link to="/teams" className="btn-ghost-light px-7 py-4 text-base">
+              Xem danh sách đội
+            </Link>
+          </motion.div>
+
+          <dl className="mt-14 grid max-w-xl grid-cols-3 gap-6 border-t border-white/10 pt-8">
+            {[
+              { k: "Đội tham dự", v: "6" },
+              { k: "Bảng đấu", v: "2" },
+              { k: "Đội / bảng", v: "3" },
+            ].map((s) => (
+              <div key={s.k}>
+                <dt className="text-xs uppercase tracking-wider text-white/60">
+                  {s.k}
+                </dt>
+                <dd className="mt-1 text-3xl font-black text-pwc-amber sm:text-4xl">
+                  {s.v}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* ===== GIỚI THIỆU ===== */}
+      <section id="about" className="bg-white py-20">
+        <div className="container-page grid gap-12 lg:grid-cols-2 lg:items-start">
+          <div>
+            <p className="eyebrow">Về giải đấu</p>
+            <h2 className="section-title">Hơn cả một trận bóng</h2>
+            <p className="mt-5 text-lg leading-relaxed text-pwc-dark">
+              {TOURNAMENT.intro}
+            </p>
+            <div className="mt-6 rounded-xl border-l-4 border-pwc-orange bg-pwc-light p-5">
+              <p className="text-sm font-bold uppercase tracking-wider text-pwc-orangeDark">
+                Đối tượng tham gia
+              </p>
+              <p className="mt-1 text-pwc-dark">{TOURNAMENT.audience}</p>
+            </div>
+          </div>
+          <ul className="grid gap-4">
+            {TOURNAMENT.purposes.map((p, i) => {
+              const IconComp = PURPOSE_ICONS[i % PURPOSE_ICONS.length];
+              return (
+                <motion.li
+                  key={p.title}
+                  initial={{ opacity: 0, x: 24 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.4 }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  className="flex gap-4 rounded-xl border border-black/5 bg-white p-5 shadow-card"
+                >
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-pwc-black text-pwc-amber">
+                    <IconComp />
+                  </span>
+                  <div>
+                    <h3 className="font-extrabold text-pwc-black">{p.title}</h3>
+                    <p className="mt-1 text-sm text-pwc-dark">
+                      {p.description}
+                    </p>
+                  </div>
+                </motion.li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+
+      {/* ===== THÔNG TIN CHÍNH ===== */}
+      <section id="info" className="bg-pwc-light py-20">
+        <div className="container-page">
+          <p className="eyebrow">Thông tin chính</p>
+          <h2 className="section-title">Những điều cần biết</h2>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <InfoCard icon={CalendarIcon} title="Thời gian" index={0}>
+              <p>{TOURNAMENT.date}</p>
+              <p className="text-pwc-dark/80">{TOURNAMENT.time}</p>
+            </InfoCard>
+                        <InfoCard icon={MapPinIcon} title="Địa điểm" index={1}>
+              {TOURNAMENT.venueUrl ? (
+                <>
+                  <a
+                    href={TOURNAMENT.venueUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded underline decoration-pwc-orange/40 underline-offset-4 transition-colors hover:text-pwc-orangeDark hover:decoration-pwc-orange"
+                    aria-label={`Mở bản đồ: ${TOURNAMENT.venue} (mở tab mới)`}
+                  >
+                    {TOURNAMENT.venue}
+                  </a>
+                  <a
+                    href={TOURNAMENT.venueUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-pwc-orange/10 px-3 py-1.5 text-sm font-bold text-pwc-orangeDark transition-colors hover:bg-pwc-orange/20"
+                    aria-label="Xem đường đi trên Google Maps (mở tab mới)"
+                  >
+                    <MapPinIcon className="h-4 w-4" /> Xem bản đồ
+                  </a>
+                </>
+              ) : (
+                <p>{TOURNAMENT.venue}</p>
+              )}
+            </InfoCard>
+            <InfoCard icon={GridIcon} title="Thể thức" index={2}>
+              <p>{TOURNAMENT.format}</p>
+            </InfoCard>
+            <InfoCard icon={TrophyIcon} title="Giải thưởng" index={3}>
+              <ul className="space-y-1">
+                {TOURNAMENT.prizes.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </InfoCard>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== CONTACT POINTS ===== */}
+      <section id="contact" className="bg-white py-20">
+        <div className="container-page">
+          <p className="eyebrow">Contact Points</p>
+          <h2 className="section-title">Liên hệ Ban tổ chức</h2>
+          <p className="mt-3 max-w-2xl text-pwc-dark">
+            Có câu hỏi về đăng ký, lịch thi đấu hay hậu cần? Liên hệ trực tiếp
+            với chúng tôi.
+          </p>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {CONTACTS.map((c, i) => (
+              <ContactCard key={c.id} contact={c} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== CTA CUỐI TRANG ===== */}
+      <section className="bg-gradient-to-r from-pwc-orange to-pwc-amber">
+        <div className="container-page flex flex-col items-start justify-between gap-6 py-12 sm:flex-row sm:items-center">
+          <h2 className="text-2xl font-black text-pwc-black sm:text-3xl">
+            Sẵn sàng xem đội bạn rơi vào bảng nào?
+          </h2>
+          <Link to="/draw" className="btn-dark px-7 py-4 text-base">
+            Bắt đầu bốc thăm <ArrowRightIcon />
+          </Link>
+        </div>
+      </section>
+    </>
+  );
+}
