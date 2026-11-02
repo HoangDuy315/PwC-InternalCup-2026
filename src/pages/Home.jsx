@@ -23,21 +23,17 @@ export default function Home() {
     <>
       {/* ===== HERO ===== */}
         {/* ===== HERO ===== */}
+         {/* ===== HERO ===== */}
       <section className="relative overflow-hidden bg-pwc-black text-white">
-        {/* Ảnh nền Hero + lớp phủ nhẹ để ảnh rõ mà chữ vẫn đọc được */}
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        {/* Desktop: ảnh làm nền toàn khung */}
+        <div className="pointer-events-none absolute inset-0 hidden lg:block" aria-hidden="true">
           <img src={mainBg} alt="" className="h-full w-full object-cover object-[center_30%]" />
-          {/* Tối nhẹ phía trên (chỗ tiêu đề) */}
           <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-black/60 to-transparent" />
-          {/* Tối nhẹ phía dưới (chỗ nút + số liệu) */}
           <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/70 to-transparent" />
-          {/* Mobile: phủ thêm 1 lớp để chữ dễ đọc */}
-          <div className="absolute inset-0 bg-black/35 lg:hidden" />
         </div>
 
-        {/* Khung nội dung cao bằng màn hình: tiêu đề ở trên, nút + số liệu ở dưới */}
-        <div className="container-page relative flex min-h-[calc(100vh-4rem)] flex-col pb-10 pt-12 [text-shadow:0_2px_12px_rgba(0,0,0,0.6)] sm:pt-16">
-          {/* ----- Phần trên: tiêu đề ----- */}
+        <div className="container-page relative flex flex-col pb-10 pt-10 sm:pt-14 lg:min-h-[calc(100vh-4rem)] lg:pt-16 lg:[text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">
+          {/* ----- Tiêu đề ----- */}
           <div>
             <motion.p
               initial={{ opacity: 0, y: 12 }}
@@ -65,15 +61,29 @@ export default function Home() {
             </motion.p>
           </div>
 
-          {/* ----- Phần dưới: nút + số liệu (mt-auto đẩy xuống đáy) ----- */}
-          <div className="mt-auto">
+          {/* Mobile/tablet: ảnh hiện đủ khung, không bị cắt */}
+          <motion.img
+            src={mainBg}
+            alt="Các cầu thủ tham dự PwC Internal Cup"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="-mx-4 mt-6 block h-auto w-[calc(100%+2rem)] max-w-none sm:mx-0 sm:w-full sm:rounded-xl lg:hidden"
+          />
+
+          {/* ----- Nút + số liệu: mobile nằm dưới ảnh, desktop đẩy xuống đáy ----- */}
+          <div className="mt-6 lg:mt-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-3"
+              className="flex flex-col gap-3 sm:flex-row sm:flex-wrap"
             >
-              <Link to="/draw" className="btn-primary px-7 py-4 text-base shadow-lg" aria-label="Đến trang bốc thăm chia bảng">
+              <Link
+                to="/draw"
+                className="btn-primary px-7 py-4 text-base shadow-lg"
+                aria-label="Đến trang bốc thăm chia bảng"
+              >
                 Đến trang bốc thăm <ArrowRightIcon />
               </Link>
               <Link to="/teams" className="btn-ghost-light bg-black/30 px-7 py-4 text-base backdrop-blur-sm">

@@ -87,7 +87,6 @@ const RAW_TEAMS = [
       { name: "Trần Anh Tài", number: 14 },
       { name: "Nguyễn Hải Long", number: 23 },
       { name: "Dương Trọng Anh", number: 8 },
-      { name: "Phạm Vũ Long", number: null },
     ],
   },
   {
@@ -125,6 +124,7 @@ const RAW_TEAMS = [
       { name: "Thanh Tú", number: null },
       { name: "Cường Tesu", number: null },
       { name: "Hạ Dương Lê", number: null },
+      { name: "Phạm Vũ Long", number: null },
     ],
   },
 ];
