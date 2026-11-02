@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAnimationControls, motion } from "framer-motion";
-import { useLocalStorage } from "../hooks/useLocalStorage.js";
+// import { useLocalStorage } from "../hooks/useLocalStorage.js";
+import {useSharedState} from "../hooks/useSharedState.js";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -16,10 +17,10 @@ import Wheel from "../components/Wheel.jsx";
 import GroupBoard from "../components/GroupBoard.jsx";
 import ResultModal from "../components/ResultModal.jsx";
 import DrawHistory from "../components/DrawHistory.jsx";
-
+ 
 const SPIN_MS = 5000; // thời gian quay chuẩn (4–6 giây)
 const SPIN_MS_REDUCED = 600; // khi người dùng bật giảm chuyển động
-
+ 
 export default function Draw() {
   const {
     teams,
@@ -37,26 +38,25 @@ export default function Draw() {
     reset,
   } = useDraw();
   const reducedMotion = usePrefersReducedMotion();
-
+ 
   const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [winner, setWinner] = useState(null);
   const [lastAddedId, setLastAddedId] = useState(null);
   const [announcement, setAnnouncement] = useState("");
-
+ 
   const timerRef = useRef(null);
   const spinButtonRef = useRef(null);
   const winnerRef = useRef(null);
   const resetIconRef = useRef(null); // vùng icon trong nút Reset
   const spinDuration = reducedMotion ? SPIN_MS_REDUCED : SPIN_MS;
-
+ 
   // ===== Shuffle: thứ tự hiển thị các ô trên vòng quay =====
-  const [wheelOrder, setWheelOrder] = useLocalStorage(
-    "pwc-internal-cup:wheel-order",
-    [],
-  );
-  const wheelControls = useAnimationControls();
 
+  const [wheelOrder, setWheelOrder] = useSharedState("wheelOrder", []);
+  const [, setGoals] = useSharedState("goals", {}); // dùng để reset vua phá lưới
+  const wheelControls = useAnimationControls();
+ 
   // Sắp xếp các đội còn lại theo thứ tự đã shuffle (đội chưa có trong order thì xếp theo teams.js)
   const wheelTeams = useMemo(() => {
     const pos = new Map(wheelOrder.map((id, i) => [id, i]));
@@ -66,7 +66,7 @@ export default function Draw() {
         : 1000 + teams.findIndex((x) => x.id === t.id);
     return [...remainingTeams].sort((a, b) => rank(a) - rank(b));
   }, [remainingTeams, wheelOrder, teams]);
-
+ 
   // Xáo trộn Fisher–Yates bằng secureRandomInt, đảm bảo thứ tự mới khác thứ tự cũ
   const handleShuffle = () => {
     if (isSpinning || winner || pendingTeam || wheelTeams.length < 2) return;
@@ -90,17 +90,17 @@ export default function Draw() {
     });
     setAnnouncement("Đã xáo trộn thứ tự vòng quay.");
   };
-
+ 
   useEffect(() => {
     winnerRef.current = winner;
   }, [winner]);
-
+ 
   // Khi vào trang: chốt đội pending nếu có. Khi rời trang: hủy timer.
   useEffect(() => {
     commitPending();
     return () => window.clearTimeout(timerRef.current);
   }, [commitPending]);
-
+ 
   // Còn đúng 1 đội: tự động xếp vào bảng còn thiếu (Bảng B), không cần quay
   const isLastTeam = remainingTeams.length === 1;
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function Draw() {
     startSpin,
     commitPending,
   ]);
-
+ 
   // Chọn đội trúng cho lượt hiện tại
   const pickTeam = () => {
     let pool = remainingTeams;
@@ -137,7 +137,7 @@ export default function Draw() {
     }
     return pool[secureRandomInt(pool.length)];
   };
-
+ 
   // Xử lý bấm QUAY
   const handleSpin = () => {
     if (
@@ -148,12 +148,12 @@ export default function Draw() {
       remainingTeams.length <= 1
     )
       return;
-
+ 
     // 1) Chọn đội trúng
     const team = pickTeam();
     const n = wheelTeams.length;
     const index = wheelTeams.findIndex((t) => t.id === team.id);
-
+ 
     // 2) Tính góc để kim (ở đỉnh) dừng đúng giữa ô của đội đó
     const segAngle = 360 / n;
     const centerAngle = (index + 0.5) * segAngle;
@@ -162,14 +162,14 @@ export default function Draw() {
     const delta = (targetMod - currentMod + 360) % 360;
     const extraSpins = reducedMotion ? 1 : 5 + secureRandomInt(2);
     const nextRotation = rotation + extraSpins * 360 + delta;
-
+ 
     // 3) Ghi nhận pending rồi bắt đầu quay
     startSpin(team.id);
     setIsSpinning(true);
     setLastAddedId(null);
     setAnnouncement("Vòng quay đang quay…");
     setRotation(nextRotation);
-
+ 
     // 4) Khi dừng: hiện popup chúc mừng
     timerRef.current = window.setTimeout(() => {
       setIsSpinning(false);
@@ -177,7 +177,7 @@ export default function Draw() {
       setAnnouncement(`${team.name} được xếp vào Bảng ${nextGroup}.`);
     }, spinDuration + 150);
   };
-
+ 
   // Đóng popup → chốt đội vào bảng
   const handleCloseModal = useCallback(() => {
     if (winnerRef.current) setLastAddedId(winnerRef.current.id);
@@ -185,28 +185,30 @@ export default function Draw() {
     commitPending();
     window.requestAnimationFrame(() => spinButtonRef.current?.focus());
   }, [commitPending]);
-
+ 
   // Xóa các state cục bộ sau khi reset
+  // Xóa các state cục bộ sau khi reset + xóa luôn vua phá lưới
   const clearLocal = () => {
+     setGoals({}); // reset bốc thăm → xóa luôn vua phá lưới trên server
     window.clearTimeout(timerRef.current);
     setIsSpinning(false);
     setWinner(null);
     setLastAddedId(null);
     setAnnouncement("Đã reset. Có thể bốc thăm lại từ đầu.");
   };
-
+ 
   // Bấm chữ "Reset": reset ngay, về chế độ random
   const handleRandomReset = () => {
     reset("random");
     clearLocal();
   };
-
+ 
   // Bấm icon reset: reset ngay, chuyển sang chế độ xếp sẵn
   const handleQuickReset = () => {
     reset("preset");
     clearLocal();
   };
-
+ 
   // 1 nút Reset duy nhất: bấm chuột trúng icon → xếp sẵn, còn lại → random
   const handleResetClick = (e) => {
     const icon = resetIconRef.current;
@@ -225,7 +227,7 @@ export default function Draw() {
     }
     handleRandomReset();
   };
-
+ 
   const spinDisabled =
     isSpinning ||
     Boolean(winner) ||
@@ -240,7 +242,7 @@ export default function Draw() {
         ? "Đang xếp đội cuối…"
         : "QUAY";
   const drawnCount = history.length;
-
+ 
   return (
     <div className="bg-pwc-light">
       {/* Tiêu đề trang */}
@@ -279,7 +281,7 @@ export default function Draw() {
           </div>
         </div>
       </section>
-
+ 
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start">
         {/* Cột trái: vòng quay + nút */}
         <section
@@ -302,7 +304,7 @@ export default function Draw() {
               </p>
             )}
           </div>
-
+ 
           <motion.div animate={wheelControls}>
             <Wheel
               teams={wheelTeams}
@@ -311,7 +313,7 @@ export default function Draw() {
               isComplete={isComplete}
             />
           </motion.div>
-
+ 
           <div className="mt-8 flex flex-col items-center gap-3">
             <button
               ref={spinButtonRef}
@@ -334,7 +336,7 @@ export default function Draw() {
             >
               {spinLabel}
             </button>
-
+ 
             <div className="flex flex-wrap items-center justify-center gap-3">
               {isComplete && (
                 <Link
@@ -379,12 +381,12 @@ export default function Draw() {
               </button>
             </div>
           </div>
-
+ 
           <p className="sr-only" aria-live="polite">
             {announcement}
           </p>
         </section>
-
+ 
         {/* Cột phải: 2 bảng + lịch sử */}
         <div className="space-y-5">
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
@@ -404,7 +406,7 @@ export default function Draw() {
           <DrawHistory history={history} />
         </div>
       </div>
-
+ 
       <ResultModal
         team={winner}
         group={nextGroup}

@@ -1,19 +1,14 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from "react";
+import { onValue, ref, set } from "firebase/database";
+import { db } from "../firebase.js";
 import { TEAMS, TEAMS_SIGNATURE, TEAM_BY_ID } from "../data/teams.js";
-import { usePersistentReducer } from "../hooks/useLocalStorage.js";
 
-const STORAGE_KEY = "pwc-internal-cup:draw:v1";
+const DB_PATH = "draw";
 export const TEAMS_PER_GROUP = 3;
 
-// Thứ tự chia bảng: lượt lẻ → A, lượt chẵn → B (turnIndex bắt đầu từ 0)
+// Thứ tự chia bảng: lượt lẻ → A, lượt chẵn → B
 export const getGroupForTurn = (turnIndex) => (turnIndex % 2 === 0 ? "A" : "B");
 
-/*
-  Cấu trúc state:
-  - results: [{ teamId, group, turn, drawnAt }] – kết quả đã chốt
-  - pendingTeamId: đội vừa được chọn nhưng chưa chốt (đang quay / đang hiện popup)
-  - mode: 'random' (ngẫu nhiên hoàn toàn) | 'preset' (theo tổ hợp xếp sẵn)
-*/
 const createInitialState = (mode = "random") => ({
   signature: TEAMS_SIGNATURE,
   results: [],
@@ -26,11 +21,7 @@ function commitPending(state) {
   const { pendingTeamId, results } = state;
   if (!pendingTeamId) return state;
   const alreadyDrawn = results.some((r) => r.teamId === pendingTeamId);
-  if (
-    alreadyDrawn ||
-    results.length >= TEAMS.length ||
-    !TEAM_BY_ID[pendingTeamId]
-  ) {
+  if (alreadyDrawn || results.length >= TEAMS.length || !TEAM_BY_ID[pendingTeamId]) {
     return { ...state, pendingTeamId: null };
   }
   const turnIndex = results.length;
@@ -49,24 +40,18 @@ function commitPending(state) {
   };
 }
 
-// Kiểm tra dữ liệu localStorage; nếu không hợp lệ thì khởi tạo lại
+// Kiểm tra dữ liệu từ server (Firebase bỏ mảng rỗng nên results có thể không tồn tại)
 function initState(stored) {
-  if (
-    !stored ||
-    stored.signature !== TEAMS_SIGNATURE ||
-    !Array.isArray(stored.results)
-  ) {
-    return createInitialState();
-  }
+  const mode = stored?.mode === "preset" ? "preset" : "random";
+  if (!stored || stored.signature !== TEAMS_SIGNATURE) return createInitialState(mode);
+
+  const rawResults = Array.isArray(stored.results)
+    ? stored.results
+    : Object.values(stored.results || {});
   const seen = new Set();
   const results = [];
-  stored.results.forEach((r) => {
-    if (
-      r &&
-      TEAM_BY_ID[r.teamId] &&
-      !seen.has(r.teamId) &&
-      results.length < TEAMS.length
-    ) {
+  rawResults.forEach((r) => {
+    if (r && TEAM_BY_ID[r.teamId] && !seen.has(r.teamId) && results.length < TEAMS.length) {
       seen.add(r.teamId);
       const turnIndex = results.length;
       results.push({
@@ -78,28 +63,16 @@ function initState(stored) {
     }
   });
   const pendingTeamId =
-    stored.pendingTeamId && TEAM_BY_ID[stored.pendingTeamId]
-      ? stored.pendingTeamId
-      : null;
-  const mode = stored.mode === "preset" ? "preset" : "random";
-  // F5 khi đang quay: tự chốt đội đã được chọn trước đó
-  return commitPending({
-    signature: TEAMS_SIGNATURE,
-    results,
-    pendingTeamId,
-    mode,
-  });
+    stored.pendingTeamId && TEAM_BY_ID[stored.pendingTeamId] ? stored.pendingTeamId : null;
+  return { signature: TEAMS_SIGNATURE, results, pendingTeamId, mode };
 }
 
 function drawReducer(state, action) {
   switch (action.type) {
     case "START_SPIN": {
-      // Chặn quay 2 lần đồng thời hoặc khi đã hết đội
-      if (state.pendingTeamId || state.results.length >= TEAMS.length)
-        return state;
+      if (state.pendingTeamId || state.results.length >= TEAMS.length) return state;
       const isRemaining =
-        TEAM_BY_ID[action.teamId] &&
-        !state.results.some((r) => r.teamId === action.teamId);
+        TEAM_BY_ID[action.teamId] && !state.results.some((r) => r.teamId === action.teamId);
       if (!isRemaining) return state;
       return { ...state, pendingTeamId: action.teamId };
     }
@@ -107,6 +80,8 @@ function drawReducer(state, action) {
       return commitPending(state);
     case "RESET":
       return createInitialState(action.mode === "preset" ? "preset" : "random");
+    case "HYDRATE":
+      return action.state;
     default:
       return state;
   }
@@ -115,35 +90,42 @@ function drawReducer(state, action) {
 const DrawContext = createContext(null);
 
 export function DrawProvider({ children }) {
-  const [state, dispatch] = usePersistentReducer(
-    drawReducer,
-    STORAGE_KEY,
-    initState,
+  const [state, dispatch] = useReducer(drawReducer, undefined, () => createInitialState());
+  const loadedRef = useRef(false); // đã nhận dữ liệu từ server lần đầu chưa
+  const fromRemoteRef = useRef(false); // thay đổi đến từ server → không ghi ngược lại
+
+  // Nhận kết quả bốc thăm từ server (realtime)
+  useEffect(
+    () =>
+      onValue(ref(db, DB_PATH), (snap) => {
+        fromRemoteRef.current = true;
+        loadedRef.current = true;
+        dispatch({ type: "HYDRATE", state: initState(snap.val()) });
+      }),
+    [],
   );
 
-  const startSpin = useCallback(
-    (teamId) => dispatch({ type: "START_SPIN", teamId }),
-    [dispatch],
-  );
-  const commit = useCallback(() => dispatch({ type: "COMMIT" }), [dispatch]);
-  // reset('random') = reset lớn, reset('preset') = reset nhỏ
-  const reset = useCallback(
-    (mode = "random") => dispatch({ type: "RESET", mode }),
-    [dispatch],
-  );
+  // Ghi lên server khi state đổi tại máy này
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    if (fromRemoteRef.current) {
+      fromRemoteRef.current = false;
+      return;
+    }
+    set(ref(db, DB_PATH), state);
+  }, [state]);
+
+  const startSpin = useCallback((teamId) => dispatch({ type: "START_SPIN", teamId }), []);
+  const commit = useCallback(() => dispatch({ type: "COMMIT" }), []);
+  const reset = useCallback((mode = "random") => dispatch({ type: "RESET", mode }), []);
 
   const value = useMemo(() => {
     const drawnIds = new Set(state.results.map((r) => r.teamId));
     const remainingTeams = TEAMS.filter((t) => !drawnIds.has(t.id));
-    const history = state.results.map((r) => ({
-      ...r,
-      team: TEAM_BY_ID[r.teamId],
-    }));
+    const history = state.results.map((r) => ({ ...r, team: TEAM_BY_ID[r.teamId] }));
     const groupA = history.filter((r) => r.group === "A");
     const groupB = history.filter((r) => r.group === "B");
-    const resultByTeamId = Object.fromEntries(
-      state.results.map((r) => [r.teamId, r]),
-    );
+    const resultByTeamId = Object.fromEntries(state.results.map((r) => [r.teamId, r]));
     const isComplete = state.results.length >= TEAMS.length;
 
     return {
@@ -169,7 +151,6 @@ export function DrawProvider({ children }) {
   return <DrawContext.Provider value={value}>{children}</DrawContext.Provider>;
 }
 
-// Hook tiện ích để dùng context
 export function useDraw() {
   const ctx = useContext(DrawContext);
   if (!ctx) throw new Error("useDraw phải được dùng bên trong <DrawProvider>");
