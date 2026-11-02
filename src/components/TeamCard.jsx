@@ -48,13 +48,17 @@ function GroupBadge({ result }) {
   );
 }
 
-// So sánh tên không phân biệt hoa thường / khoảng trắng thừa
-const normalize = (s = "") => s.trim().replace(/\s+/g, " ").toLowerCase();
+// So sánh tên không phân biệt hoa thường / khoảng trắng thừa (an toàn với mọi kiểu dữ liệu)
+const normalize = (s) => String(s ?? "").trim().replace(/\s+/g, " ").toLowerCase();
+
+// Chuẩn hóa cầu thủ: chấp nhận cả "Tên" hoặc { name, number }
+const toPlayer = (p) =>
+  typeof p === "string" ? { name: p, number: null } : { name: p?.name ?? "", number: p?.number ?? null };
 
 export default function TeamCard({ team, index, result }) {
   const [open, setOpen] = useState(false); // trạng thái mở/ẩn danh sách cầu thủ
   const panelId = useId();
-  const players = team.players || [];
+  const players = (team.players || []).map(toPlayer);
   const captainKey = normalize(team.captain);
 
   return (
@@ -79,35 +83,25 @@ export default function TeamCard({ team, index, result }) {
         </span>
         <TeamAvatar team={team} size="md" />
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-lg font-extrabold text-pwc-black">
-            {team.name}
-          </h3>
-          {team.department && (
-            <p className="text-sm text-pwc-dark/80">{team.department}</p>
-          )}
+          <h3 className="truncate text-lg font-extrabold text-pwc-black">{team.name}</h3>
+          {team.department && <p className="text-sm text-pwc-dark/80">{team.department}</p>}
           {/* Đội trưởng và số thành viên luôn nằm 2 dòng riêng để các card đồng đều */}
           <div className="mt-1 flex flex-col gap-1 text-sm text-pwc-dark/70">
             {team.captain && (
               <span className="truncate">
-                Đội trưởng:{" "}
-                <strong className="text-pwc-dark">{team.captain}</strong>
+                Đội trưởng: <strong className="text-pwc-dark">{team.captain}</strong>
               </span>
             )}
             {team.members ? (
               <span className="inline-flex items-center gap-1.5">
-                <UsersIcon className="h-4 w-4 shrink-0" /> {team.members} thành
-                viên
+                <UsersIcon className="h-4 w-4 shrink-0" /> {team.members} thành viên
               </span>
             ) : null}
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <GroupBadge result={result} />
-          {result && (
-            <span className="text-[11px] text-pwc-dark/60">
-              Lượt #{result.turn}
-            </span>
-          )}
+          {result && <span className="text-[11px] text-pwc-dark/60">Lượt #{result.turn}</span>}
         </div>
       </div>
 
@@ -124,9 +118,7 @@ export default function TeamCard({ team, index, result }) {
           >
             <span>
               {open ? "Ẩn danh sách cầu thủ" : "Xem danh sách cầu thủ"}{" "}
-              <span className="font-semibold text-pwc-dark/60">
-                ({players.length})
-              </span>
+              <span className="font-semibold text-pwc-dark/60">({players.length})</span>
             </span>
             <motion.span
               animate={{ rotate: open ? 180 : 0 }}
@@ -149,24 +141,28 @@ export default function TeamCard({ team, index, result }) {
                 className="overflow-hidden"
               >
                 <ol
-                  className="grid grid-cols-1 gap-x-4 gap-y-1 bg-pwc-light/60 px-5 pb-4 pt-3 sm:grid-cols-2"
+                  className="grid grid-cols-1 gap-x-4 gap-y-1.5 bg-pwc-light/60 px-5 pb-4 pt-3 sm:grid-cols-2"
                   aria-label={`Danh sách cầu thủ ${team.name}`}
                 >
                   {players.map((player, i) => {
-                    const isCaptain = normalize(player) === captainKey;
+                    const isCaptain = normalize(player.name) === captainKey;
+                    const hasNumber = player.number != null && player.number !== "";
                     return (
-                      <li
-                        key={`${player}-${i}`}
-                        className="flex min-w-0 items-center gap-2 text-sm"
-                      >
-                        <span className="w-5 shrink-0 text-right text-xs font-semibold tabular-nums text-pwc-dark/50">
-                          {i + 1}.
+                      <li key={`${player.name}-${i}`} className="flex min-w-0 items-center gap-2 text-sm">
+                        {/* Số áo (nếu có), không có thì hiện số thứ tự */}
+                        <span
+                          className={`inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded px-1 text-xs font-black tabular-nums ${
+                            hasNumber ? "bg-pwc-dark text-white" : "text-pwc-dark/50"
+                          }`}
+                          title={hasNumber ? `Số áo ${player.number}` : undefined}
+                        >
+                          {hasNumber ? player.number : `${i + 1}.`}
                         </span>
                         <span
                           className={`truncate ${isCaptain ? "font-bold text-pwc-orangeDark" : "text-pwc-dark"}`}
-                          title={player}
+                          title={player.name}
                         >
-                          {player}
+                          {player.name}
                         </span>
                         {isCaptain && (
                           <span

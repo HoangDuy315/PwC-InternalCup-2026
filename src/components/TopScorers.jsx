@@ -1,45 +1,42 @@
-import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { TEAMS, TEAM_BY_ID } from "../data/teams.js";
-// import { useLocalStorage } from "../hooks/useLocalStorage.js";
-import { useSharedState } from "../hooks/useSharedState.js";
-import { useAuth } from "../context/AuthContext.jsx";
-import TeamAvatar from "./TeamAvatar.jsx";
-import {ResetIcon, TrophyIcon } from "./Icons.jsx";
+import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { TEAMS, TEAM_BY_ID, getJerseyNumber } from '../data/teams.js';
+import { useSharedState } from '../hooks/useSharedState.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import TeamAvatar from './TeamAvatar.jsx';
+import { ResetIcon, TrophyIcon } from './Icons.jsx';
 
-const GOALS_KEY = "pwc-internal-cup:goals:v1";
 // Khóa lưu = id đội + tên cầu thủ (tránh trùng tên giữa 2 đội)
 const makeKey = (teamId, player) => `${teamId}::${player}`;
 
 export default function TopScorers() {
   const { isAuthed } = useAuth(); // chỉ admin mới được sửa
-  const [goals, setGoals] = useSharedState("goals", {});
-  const [teamId, setTeamId] = useState(TEAMS[0]?.id || "");
-  const [player, setPlayer] = useState("");
+  const [goals, setGoals] = useSharedState('goals', {});
+  const [teamId, setTeamId] = useState(TEAMS[0]?.id || '');
+  const [player, setPlayer] = useState(''); // lưu tên cầu thủ (chuỗi)
 
   const players = TEAM_BY_ID[teamId]?.players || [];
 
   // Danh sách cầu thủ có bàn, sắp xếp giảm dần
   const rows = useMemo(
     () =>
-      Object.entries(goals)
+      Object.entries(goals || {})
         .map(([key, count]) => {
-          const [tId, name] = key.split("::");
+          const [tId, name] = key.split('::');
           return { key, team: TEAM_BY_ID[tId], name, count };
         })
         .filter((r) => r.team && r.count > 0)
-        .sort(
-          (a, b) => b.count - a.count || a.name.localeCompare(b.name, "vi"),
-        ),
-    [goals],
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'vi')),
+    [goals]
   );
   const topCount = rows[0]?.count || 0;
 
   // Cộng/trừ bàn thắng
   const change = (key, delta) =>
     setGoals((prev) => {
-      const next = Math.max(0, (prev[key] || 0) + delta);
-      const copy = { ...prev };
+      const base = prev || {};
+      const next = Math.max(0, (base[key] || 0) + delta);
+      const copy = { ...base };
       if (next === 0) delete copy[key];
       else copy[key] = next;
       return copy;
@@ -56,9 +53,7 @@ export default function TopScorers() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Cá nhân</p>
-          <h2 id="scorers-title" className="section-title">
-            Vua phá lưới
-          </h2>
+          <h2 id="scorers-title" className="section-title">Vua phá lưới</h2>
         </div>
         {isAuthed && rows.length > 0 && (
           <button
@@ -84,14 +79,12 @@ export default function TopScorers() {
               value={teamId}
               onChange={(e) => {
                 setTeamId(e.target.value);
-                setPlayer("");
+                setPlayer('');
               }}
               className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2.5"
             >
               {TEAMS.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </label>
@@ -104,8 +97,9 @@ export default function TopScorers() {
             >
               <option value="">-- Chọn cầu thủ --</option>
               {players.map((p) => (
-                <option key={p} value={p}>
-                  {p}
+                <option key={p.name} value={p.name}>
+                  {p.number != null ? `#${p.number} – ` : ''}
+                  {p.name}
                 </option>
               ))}
             </select>
@@ -119,14 +113,13 @@ export default function TopScorers() {
       {/* Bảng xếp hạng */}
       <div className="mt-6 overflow-hidden rounded-xl border border-black/5 bg-white shadow-card">
         {rows.length === 0 ? (
-          <p className="p-6 text-center text-pwc-dark/70">
-            Chưa có bàn thắng nào được ghi nhận.
-          </p>
+          <p className="p-6 text-center text-pwc-dark/70">Chưa có bàn thắng nào được ghi nhận.</p>
         ) : (
           <ol>
             <AnimatePresence initial={false}>
               {rows.map((r, i) => {
                 const isTop = r.count === topCount;
+                const jersey = getJerseyNumber(r.team.id, r.name);
                 return (
                   <motion.li
                     key={r.key}
@@ -135,21 +128,20 @@ export default function TopScorers() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     className={`flex items-center gap-3 border-t border-black/5 px-4 py-3 first:border-t-0 ${
-                      isTop ? "bg-pwc-amber/10" : ""
+                      isTop ? 'bg-pwc-amber/10' : ''
                     }`}
                   >
-                    <span className="w-6 text-center font-black text-pwc-dark/50">
-                      {i + 1}
-                    </span>
+                    <span className="w-6 text-center font-black text-pwc-dark/50">{i + 1}</span>
                     <TeamAvatar team={r.team} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-2 truncate font-bold text-pwc-black">
                         {r.name}
-                        {isTop && (
-                          <TrophyIcon className="h-4 w-4 shrink-0 text-pwc-orange" />
-                        )}
+                        {isTop && <TrophyIcon className="h-4 w-4 shrink-0 text-pwc-orange" />}
                       </p>
-                      <p className="text-xs text-pwc-dark/60">{r.team.name}</p>
+                      <p className="text-xs text-pwc-dark/60">
+                        {jersey != null && `#${jersey} · `}
+                        {r.team.name}
+                      </p>
                     </div>
 
                     {isAuthed && (
@@ -162,9 +154,7 @@ export default function TopScorers() {
                         −
                       </button>
                     )}
-                    <span className="w-10 text-center text-xl font-black text-pwc-orangeDark">
-                      {r.count}
-                    </span>
+                    <span className="w-10 text-center text-xl font-black text-pwc-orangeDark">{r.count}</span>
                     {isAuthed && (
                       <button
                         type="button"
@@ -183,8 +173,7 @@ export default function TopScorers() {
         )}
       </div>
       <p className="mt-2 text-xs text-pwc-dark/60">
-        Dòng tô vàng có biểu tượng cúp: đang dẫn đầu (bằng bàn thì cùng dẫn
-        đầu).
+        Dòng tô vàng có biểu tượng cúp: đang dẫn đầu (bằng bàn thì cùng dẫn đầu).
       </p>
     </section>
   );
