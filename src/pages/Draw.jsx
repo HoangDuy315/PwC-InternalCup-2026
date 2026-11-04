@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAnimationControls, motion } from "framer-motion";
 // import { useLocalStorage } from "../hooks/useLocalStorage.js";
-import {useSharedState} from "../hooks/useSharedState.js";
+import { useSharedState } from "../hooks/useSharedState.js";
 import {
   ArrowRightIcon,
   CheckIcon,
@@ -12,7 +12,11 @@ import { Link } from "react-router-dom";
 import { useDraw } from "../context/DrawContext.jsx";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion.js";
 import { secureRandomInt } from "../utils/random.js";
-import { PRESET_GROUPS } from "../data/drawPreset.js";
+import {
+  PRESET_GROUPS,
+  PRESET_FIXED_ORDER,
+  PRESET_FIRST,
+} from "../data/drawPreset.js";
 import Wheel from "../components/Wheel.jsx";
 import GroupBoard from "../components/GroupBoard.jsx";
 import ResultModal from "../components/ResultModal.jsx";
@@ -52,7 +56,7 @@ export default function Draw() {
   const spinDuration = reducedMotion ? SPIN_MS_REDUCED : SPIN_MS;
  
   // ===== Shuffle: thứ tự hiển thị các ô trên vòng quay =====
-
+ 
   const [wheelOrder, setWheelOrder] = useSharedState("wheelOrder", []);
   const [, setGoals] = useSharedState("goals", {}); // dùng để reset vua phá lưới
   const wheelControls = useAnimationControls();
@@ -127,13 +131,27 @@ export default function Draw() {
   ]);
  
   // Chọn đội trúng cho lượt hiện tại
+  // Chọn đội trúng cho lượt hiện tại
+  // Chọn đội trúng cho lượt hiện tại
   const pickTeam = () => {
     let pool = remainingTeams;
     // Chế độ xếp sẵn: chỉ chọn trong các đội thuộc bảng của lượt này
     if (mode === "preset" && nextGroup) {
       const allowed = PRESET_GROUPS[nextGroup] || [];
-      const filtered = remainingTeams.filter((t) => allowed.includes(t.id));
-      if (filtered.length > 0) pool = filtered;
+      // Giữ đúng thứ tự trong drawPreset.js, bỏ các đội đã bốc
+      const ordered = allowed
+        .map((id) => remainingTeams.find((t) => t.id === id))
+        .filter(Boolean);
+      if (ordered.length > 0) {
+        // Bảng cố định thứ tự: lấy đội đầu tiên còn lại (A1 → A2 → A3)
+        if (PRESET_FIXED_ORDER[nextGroup]) return ordered[0];
+        // Đội cố định ở vị trí số 1 (vd B1 = Team Báo), chỉ áp dụng khi bảng chưa có đội nào
+        const firstId = PRESET_FIRST[nextGroup];
+        const groupCount = nextGroup === "A" ? groupA.length : groupB.length;
+        const firstTeam = ordered.find((t) => t.id === firstId);
+        if (firstTeam && groupCount === 0) return firstTeam;
+        pool = ordered;
+      }
     }
     return pool[secureRandomInt(pool.length)];
   };
@@ -189,7 +207,7 @@ export default function Draw() {
   // Xóa các state cục bộ sau khi reset
   // Xóa các state cục bộ sau khi reset + xóa luôn vua phá lưới
   const clearLocal = () => {
-     setGoals({}); // reset bốc thăm → xóa luôn vua phá lưới trên server
+    setGoals({}); // reset bốc thăm → xóa luôn vua phá lưới trên server
     window.clearTimeout(timerRef.current);
     setIsSpinning(false);
     setWinner(null);

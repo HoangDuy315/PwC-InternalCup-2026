@@ -5,26 +5,28 @@ import { useSharedState } from "../hooks/useSharedState.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import TeamAvatar from "./TeamAvatar.jsx";
 import { ResetIcon, TrophyIcon } from "./Icons.jsx";
-
+ 
 const MANUAL = "_manual_"; // giá trị đặc biệt: nhập tên tay
-
+ 
 // Khóa lưu = id đội + tên cầu thủ (tránh trùng tên giữa 2 đội)
 const makeKey = (teamId, player) => teamId + "::" + player;
-
+ 
 // Làm sạch tên nhập tay: bỏ ký tự Firebase không cho phép trong key (. # $ / [ ])
 const cleanName = (s) =>
   String(s || "")
     .replace(/[.#$/[\]]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-
+ 
 export default function TopScorers() {
   const { isAuthed } = useAuth(); // chỉ admin mới được sửa
   const [goals, setGoals] = useSharedState("goals", {});
   const [teamId, setTeamId] = useState(TEAMS[0]?.id || "");
   const [player, setPlayer] = useState(""); // tên cầu thủ chọn từ list, hoặc MANUAL
   const [manualName, setManualName] = useState(""); // tên nhập tay
-
+  const [jerseyInput, setJerseyInput] = useState(""); // các số áo theo biên bản
+  const [jerseyMsg, setJerseyMsg] = useState(null); // kết quả ghi theo số áo
+ 
   // Danh sách cầu thủ có bàn, sắp xếp giảm dần
   const rows = useMemo(
     () =>
@@ -38,17 +40,17 @@ export default function TopScorers() {
     [goals]
   );
   const topCount = rows[0]?.count || 0;
-
+ 
   // Cầu thủ trong list của đội + cầu thủ nhập tay đã từng ghi bàn cho đội đó
   const roster = TEAM_BY_ID[teamId]?.players || [];
   const rosterNames = new Set(roster.map((p) => p.name));
   const extraPlayers = rows
     .filter((r) => r.team.id === teamId && !rosterNames.has(r.name))
     .map((r) => r.name);
-
+ 
   const isManual = player === MANUAL;
   const finalName = isManual ? cleanName(manualName) : player;
-
+ 
   // Cộng/trừ bàn thắng
   const change = (key, delta) =>
     setGoals((prev) => {
@@ -59,18 +61,50 @@ export default function TopScorers() {
       else copy[key] = next;
       return copy;
     });
-
+ 
+  // Ghi 1 bàn cho cầu thủ chọn từ list / nhập tay
   const handleAdd = (e) => {
     e.preventDefault();
     if (!teamId || !finalName) return;
     change(makeKey(teamId, finalName), 1);
-    // Nhập tay xong: chuyển dropdown về đúng tên vừa thêm để bấm tiếp cho nhanh
     if (isManual) {
       setPlayer(finalName);
       setManualName("");
     }
   };
-
+ 
+  // Ghi bàn theo số áo: "7, 10, 10" → số 7 +1 bàn, số 10 +2 bàn (đội đang chọn)
+  const handleJerseyAdd = (e) => {
+    e.preventDefault();
+    const tokens = jerseyInput
+      .split(/[\s,;]+/)
+      .map((t) => t.replace(/^#/, "").trim())
+      .filter(Boolean);
+    if (!teamId || tokens.length === 0) return;
+ 
+    const found = [];
+    const notFound = [];
+    tokens.forEach((tok) => {
+      const matches = roster.filter((p) => p.number != null && String(p.number) === tok);
+      if (matches.length === 1) found.push(matches[0].name);
+      else notFound.push(tok); // không có số này, hoặc 2 người trùng số
+    });
+ 
+    if (found.length > 0) {
+      setGoals((prev) => {
+        const copy = { ...(prev || {}) };
+        found.forEach((name) => {
+          const key = makeKey(teamId, name);
+          copy[key] = (copy[key] || 0) + 1;
+        });
+        return copy;
+      });
+    }
+ 
+    setJerseyMsg({ added: found, notFound: notFound });
+    setJerseyInput(notFound.join(", ")); // giữ lại số lỗi để kiểm tra
+  };
+ 
   return (
     <section aria-labelledby="scorers-title">
       <div className="flex items-end justify-between gap-4">
@@ -89,78 +123,120 @@ export default function TopScorers() {
           </button>
         )}
       </div>
-
-      {/* Form ghi bàn – chỉ hiện khi đã đăng nhập admin */}
+ 
+      {/* Khu vực admin: ghi bàn */}
       {isAuthed && (
-        <form
-          onSubmit={handleAdd}
-          className="mt-6 flex flex-col gap-3 rounded-xl bg-white p-4 shadow-card sm:flex-row sm:items-end"
-        >
-          <label className="flex-1 text-sm font-semibold text-pwc-dark">
-            Đội
-            <select
-              value={teamId}
-              onChange={(e) => {
-                setTeamId(e.target.value);
-                setPlayer("");
-                setManualName("");
-              }}
-              className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2.5"
-            >
-              {TEAMS.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex-1 text-sm font-semibold text-pwc-dark">
-            Cầu thủ
-            <select
-              value={player}
-              onChange={(e) => {
-                setPlayer(e.target.value);
-                setManualName("");
-              }}
-              className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2.5"
-            >
-              <option value="">-- Chọn cầu thủ --</option>
-              {roster.map((p) => (
-                <option key={p.name} value={p.name}>
-                  {p.number != null ? "#" + p.number + " – " : ""}
-                  {p.name}
-                </option>
-              ))}
-              {extraPlayers.map((name) => (
-                <option key={"extra-" + name} value={name}>
-                  {name} (ngoài danh sách)
-                </option>
-              ))}
-              <option value={MANUAL}>+ Nhập tên khác…</option>
-            </select>
-          </label>
-
-          {/* Ô nhập tên tay – chỉ hiện khi chọn "Nhập tên khác" */}
-          {isManual && (
+        <>
+          {/* Form 1: chọn cầu thủ / nhập tên tay */}
+          <form
+            onSubmit={handleAdd}
+            className="mt-6 flex flex-col gap-3 rounded-xl bg-white p-4 shadow-card sm:flex-row sm:items-end"
+          >
             <label className="flex-1 text-sm font-semibold text-pwc-dark">
-              Tên cầu thủ
+              Đội
+              <select
+                value={teamId}
+                onChange={(e) => {
+                  setTeamId(e.target.value);
+                  setPlayer("");
+                  setManualName("");
+                  setJerseyInput("");
+                  setJerseyMsg(null);
+                }}
+                className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2.5"
+              >
+                {TEAMS.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </label>
+ 
+            <label className="flex-1 text-sm font-semibold text-pwc-dark">
+              Cầu thủ
+              <select
+                value={player}
+                onChange={(e) => {
+                  setPlayer(e.target.value);
+                  setManualName("");
+                }}
+                className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2.5"
+              >
+                <option value="">-- Chọn cầu thủ --</option>
+                {roster.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {(p.number != null ? "#" + p.number + " – " : "") + p.name}
+                  </option>
+                ))}
+                {extraPlayers.map((name) => (
+                  <option key={"extra-" + name} value={name}>
+                    {name + " (ngoài danh sách)"}
+                  </option>
+                ))}
+                <option value={MANUAL}>+ Nhập tên khác…</option>
+              </select>
+            </label>
+ 
+            {isManual && (
+              <label className="flex-1 text-sm font-semibold text-pwc-dark">
+                Tên cầu thủ
+                <input
+                  type="text"
+                  autoFocus
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  placeholder="VD: Nguyễn Văn A"
+                  maxLength={60}
+                  className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2.5"
+                />
+              </label>
+            )}
+ 
+            <button type="submit" disabled={!finalName} className="btn-primary">
+              + 1 bàn
+            </button>
+          </form>
+ 
+          {/* Form 2: ghi nhanh theo số áo (dùng đội đang chọn ở trên) */}
+          <form
+            onSubmit={handleJerseyAdd}
+            className="mt-3 flex flex-col gap-3 rounded-xl bg-white p-4 shadow-card sm:flex-row sm:items-end"
+          >
+            <label className="flex-1 text-sm font-semibold text-pwc-dark">
+              {"Số áo ghi bàn – " + (TEAM_BY_ID[teamId]?.name || "")}
               <input
                 type="text"
-                autoFocus
-                value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
-                placeholder="VD: Nguyễn Văn A"
-                maxLength={60}
+                inputMode="numeric"
+                value={jerseyInput}
+                onChange={(e) => {
+                  setJerseyInput(e.target.value);
+                  setJerseyMsg(null);
+                }}
+                placeholder="VD: 7, 10, 10"
                 className="mt-1 w-full rounded-md border border-black/15 bg-white px-3 py-2.5"
               />
             </label>
+            <button type="submit" disabled={!jerseyInput.trim()} className="btn-dark">
+              Ghi theo số áo
+            </button>
+          </form>
+ 
+          {jerseyMsg && (
+            <p
+              role="status"
+              className={
+                "mt-2 rounded-md px-3 py-2 text-sm " +
+                (jerseyMsg.notFound.length > 0 ? "bg-red-50 text-red-700" : "bg-pwc-amber/15 text-pwc-dark")
+              }
+            >
+              {jerseyMsg.added.length > 0 ? "Đã ghi: " + jerseyMsg.added.join(", ") + ". " : ""}
+              {jerseyMsg.notFound.length > 0
+                ? "Không tìm thấy số áo: " + jerseyMsg.notFound.join(", ") + " (chưa có trong danh sách hoặc trùng số)."
+                : ""}
+            </p>
           )}
-
-          <button type="submit" disabled={!finalName} className="btn-primary">
-            + 1 bàn
-          </button>
-        </form>
+        </>
       )}
-
+ 
       {/* Bảng xếp hạng */}
       <div className="mt-6 overflow-hidden rounded-xl border border-black/5 bg-white shadow-card">
         {rows.length === 0 ? (
@@ -191,11 +267,10 @@ export default function TopScorers() {
                         {isTop && <TrophyIcon className="h-4 w-4 shrink-0 text-pwc-orange" />}
                       </p>
                       <p className="text-xs text-pwc-dark/60">
-                        {jersey != null ? "#" + jersey + " · " : ""}
-                        {r.team.name}
+                        {(jersey != null ? "#" + jersey + " · " : "") + r.team.name}
                       </p>
                     </div>
-
+ 
                     {isAuthed && (
                       <button
                         type="button"
