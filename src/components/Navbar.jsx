@@ -10,6 +10,7 @@ const LINKS = [
   { to: "/draw", label: "Bốc thăm" },
   { to: "/teams", label: "Danh sách đội" },
   { to: "/schedule", label: "Lịch thi đấu" },
+  { to: "/rules", label: "Quy định" },
 ];
 
 // Class cho link: highlight page đang active bằng gạch chân cam

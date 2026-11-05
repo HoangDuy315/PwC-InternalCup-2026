@@ -2,8 +2,10 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { TOURNAMENT } from "../data/tournament.js";
 import { CONTACTS } from "../data/contacts.js";
+import { RULES } from "../data/rules.js";
 import InfoCard from "../components/InfoCard.jsx";
 import mainBg from "../Asset/mainbg1.png";
+import tva from "../Asset/tva.png";
 import ContactCard from "../components/ContactCard.jsx";
 import {
   ArrowRightIcon,
@@ -150,6 +152,71 @@ export default function Home() {
           </ul>
         </div>
       </section>
+      
+            {/* ===== THƯ VIỆN ẢNH ===== */}
+      {RULES.photoAlbums?.length > 0 && (
+        <section id="photos" className="bg-white pb-20">
+          <div className="container-page">
+            <p className="eyebrow">Hình ảnh</p>
+            <h2 className="section-title">Thư viện ảnh</h2>
+
+            {/* Album chính: banner full chiều rộng */}
+            <a
+              href={RULES.photoAlbums[0].url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={"Mở " + RULES.photoAlbums[0].title + " trên Google Drive (mở tab mới)"}
+              className="group mt-6 grid overflow-hidden rounded-2xl border border-black/5 bg-pwc-black shadow-card transition-shadow hover:shadow-xl md:grid-cols-2"
+            >
+              {/* Ảnh xem trước */}
+              <div className="relative aspect-[16/9] overflow-hidden md:aspect-auto md:min-h-[280px]">
+                <img
+                  src={tva}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover object-[center_30%] transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:bg-gradient-to-r md:from-transparent md:to-black/40" />
+              </div>
+
+              {/* Nội dung */}
+              <div className="flex flex-col justify-center gap-3 p-6 text-white sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-pwc-amber">Google Drive</p>
+                <p className="text-2xl font-black sm:text-3xl">{RULES.photoAlbums[0].title}</p>
+                {RULES.photoAlbums[0].description && (
+                  <p className="text-white/80">{RULES.photoAlbums[0].description}</p>
+                )}
+                <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-md bg-pwc-orange px-5 py-3 text-sm font-semibold text-white transition-colors group-hover:bg-pwc-orangeDark">
+                  Xem ảnh <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
+              </div>
+            </a>
+
+            {/* Album phụ (nếu có từ 2 album trở lên) */}
+            {RULES.photoAlbums.length > 1 && (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {RULES.photoAlbums.slice(1).map((a) => (
+                  <a
+                    key={a.url}
+                    href={a.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={"Mở " + a.title + " trên Google Drive (mở tab mới)"}
+                    className="group flex items-center justify-between gap-4 rounded-xl border border-black/5 bg-white p-5 shadow-card transition-shadow hover:shadow-lg"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-pwc-black">{a.title}</p>
+                      {a.description && <p className="mt-1 text-sm text-pwc-dark/80">{a.description}</p>}
+                    </div>
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pwc-orange text-white transition-transform group-hover:translate-x-1">
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ===== THÔNG TIN CHÍNH ===== */}
       <section id="info" className="bg-pwc-light py-20">

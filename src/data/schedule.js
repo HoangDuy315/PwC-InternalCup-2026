@@ -22,3 +22,11 @@ export const ROUND_LABELS = { 1: 'Lượt 1', 2: 'Lượt 2', 3: 'Lượt 3' };
 
 // Chung kết: Thắng BK1 – Thắng BK2
 export const FINAL = { id: 'F', home: 'SF1', away: 'SF2', time: '16:30' };
+
+// Tranh hạng 5–6: Thứ ba A – Thứ ba B (đá trước bán kết)
+export const PLACEMENT_5TH = {
+  id: "P5",
+  home: { group: "A", rank: 3 },
+  away: { group: "B", rank: 3 },
+  time: "15:00",
+};

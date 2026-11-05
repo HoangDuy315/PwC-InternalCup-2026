@@ -9,6 +9,7 @@ import {
   GROUP_STAGE,
   SEMI_FINALS,
   FINAL,
+  PLACEMENT_5TH,
   ROUND_LABELS,
 } from "../data/schedule.js";
 import { computeStandings, getScore } from "../utils/standings.js";
@@ -20,8 +21,10 @@ import TopScorers from "../components/TopScorers.jsx";
 import { ArrowRightIcon, ResetIcon, TrophyIcon } from "../components/Icons.jsx";
  
 const SCORE_KEY = "pwc-internal-cup:scores:v1";
-const rankLabel = (ref) => `${ref.rank === 1 ? "Nhất" : "Nhì"} ${ref.group}`;
- 
+// const rankLabel = (ref) => `${ref.rank === 1 ? "Nhất" : "Nhì"} ${ref.group}`;
+const RANK_TEXT = { 1: "Nhất", 2: "Nhì", 3: "Thứ ba" };
+const rankLabel = (ref) => (RANK_TEXT[ref.rank] || "Hạng " + ref.rank) + " " + ref.group; 
+
 export default function Schedule() {
   const { groupA, groupB, isComplete } = useDraw();
   const { isAuthed } = useAuth(); // chỉ admin mới sửa tỉ số
@@ -84,6 +87,24 @@ export default function Schedule() {
     }));
   }, [standings]);
  
+// Tranh hạng 5–6: đội thứ ba mỗi bảng (chỉ điền khi bảng đã đá xong)
+  const resolveRank = (ref) =>
+    standings[ref.group].done ? standings[ref.group].rows[ref.rank - 1]?.team || null : null;
+  const placeMatch = {
+    ...PLACEMENT_5TH,
+    homeTeam: resolveRank(PLACEMENT_5TH.home),
+    awayTeam: resolveRank(PLACEMENT_5TH.away),
+    homeLabel: rankLabel(PLACEMENT_5TH.home),
+    awayLabel: rankLabel(PLACEMENT_5TH.away),
+  };
+  const place5 = getWinner(placeMatch);
+  const place6 = place5
+    ? place5.id === placeMatch.homeTeam?.id
+      ? placeMatch.awayTeam
+      : placeMatch.homeTeam
+    : null;
+
+
   // Chung kết: 2 đội thắng bán kết
   const semiById = Object.fromEntries(
     semiMatches.map((m, i) => [m.id, { match: m, no: i + 1 }]),
@@ -253,6 +274,35 @@ export default function Schedule() {
             <StandingsTable group="A" rows={standings.A.rows} />
             <StandingsTable group="B" rows={standings.B.rows} />
           </div>
+        </section>
+
+         {/* Tranh hạng 5–6 */}
+        <section aria-labelledby="place5-title">
+          <p className="eyebrow">Xếp hạng</p>
+          <h2 id="place5-title" className="section-title">
+            Tranh hạng 5–6
+          </h2>
+          <p className="mt-2 text-sm text-pwc-dark/70">
+            Đội thứ ba mỗi bảng gặp nhau. Đội được điền tự động khi bảng tương ứng đá xong cả 3 trận.
+          </p>
+          <div className="mx-auto mt-6 max-w-2xl">
+            <MatchCard
+              match={placeMatch}
+              readOnly={readOnly}
+              tag="Hạng 5–6"
+              tagDark
+              knockout
+              winnerId={place5?.id}
+              score={scoreOf(placeMatch)}
+              onChange={(side, v) => updateScore(placeMatch, side, v)}
+              onPenPick={(side) => setPenWinner(placeMatch, side)}
+            />
+          </div>
+          {place5 && (
+            <p className="mx-auto mt-3 max-w-2xl rounded-lg bg-white px-4 py-3 text-center text-sm font-semibold text-pwc-dark shadow-card">
+              {"Hạng 5: " + place5.name + "  ·  Hạng 6: " + (place6?.name || "")}
+            </p>
+          )}
         </section>
  
         {/* Bán kết */}

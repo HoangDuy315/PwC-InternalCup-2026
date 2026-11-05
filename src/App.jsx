@@ -11,6 +11,7 @@ import Draw from './pages/Draw.jsx';
 import Teams from './pages/Teams.jsx';
 import Schedule from './pages/Schedule.jsx';
 import Login from './pages/Login.jsx';
+import Rules from './pages/Rules.jsx';
 
 // Layout chung: Navbar cố định + nội dung + Footer
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
                 />
                 <Route path="/teams" element={<Teams />} />
                 <Route path="/schedule" element={<Schedule />} />
+                <Route path="/rules" element={<Rules />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
