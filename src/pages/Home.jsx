@@ -80,11 +80,11 @@ export default function Home() {
               className="flex flex-col gap-3 sm:flex-row sm:flex-wrap"
             >
               <Link
-                to="/draw"
+                to="/schedule"
                 className="btn-primary px-7 py-4 text-base shadow-lg"
                 aria-label="Đến trang bốc thăm chia bảng"
               >
-                Đến trang bốc thăm <ArrowRightIcon />
+                Go to lịch thi đấu <ArrowRightIcon />
               </Link>
               <Link to="/teams" className="btn-ghost-light bg-black/30 px-7 py-4 text-base backdrop-blur-sm">
                 Xem danh sách đội

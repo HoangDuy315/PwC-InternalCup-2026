@@ -385,18 +385,21 @@ export default function Draw() {
                   - Icon: chế độ xếp sẵn
                   - Chữ: random bình thường */}
               {/* Nút Reset: nhìn và hoạt động như 1 nút bình thường */}
-              <button
-                type="button"
-                onClick={handleResetClick}
-                disabled={isSpinning}
-                aria-label="Reset kết quả bốc thăm"
-                className="btn-outline py-2.5"
-              >
-                <span ref={resetIconRef} className="inline-flex">
-                  <ResetIcon className="h-4 w-4" />
-                </span>
-                Reset
-              </button>
+               {/* Nút Reset: ẩn khi đã bốc thăm xong (lịch đã cố định) */}
+              {!isComplete && (
+                <button
+                  type="button"
+                  onClick={handleResetClick}
+                  disabled={isSpinning}
+                  aria-label="Reset kết quả bốc thăm"
+                  className="btn-outline py-2.5"
+                >
+                  <span ref={resetIconRef} className="inline-flex">
+                    <ResetIcon className="h-4 w-4" />
+                  </span>
+                  Reset
+                </button>
+              )}
             </div>
           </div>
  
