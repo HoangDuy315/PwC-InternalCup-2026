@@ -23,7 +23,7 @@ const RAW_TEAMS = [
       { name: "Nguyễn Hoàng Anh", number: 5 },
       { name: "Nguyễn Hùng Anh", number: 11 },
       { name: "Nguyễn Ngọc Khánh", number: 74 },
-      { name: "Nguyễn Vương Hoàng Phúc", number: 55 },
+      { name: "Nguyễn Vương Hoàng Phúc", number: 13 },
       { name: "Phạm Đăng Khoa", number: 22 },
       { name: "Phạm Long Minh Thông", number: 85 },
       { name: "Trần Quốc Tín", number: 6 },
@@ -31,7 +31,6 @@ const RAW_TEAMS = [
       { name: "Tô Huỳnh Minh Khôi", number: 20 },
       { name: "Vũ Thế Lê Anh", number: 1 },
       { name: "Nguyễn Anh Hào", number: 2 },
-      { name: "Võ Xuân Thời", number: 13 },
     ],
   },
   {
@@ -127,6 +126,7 @@ const RAW_TEAMS = [
       { name: "Cường Tesu", number: null },
       { name: "Hạ Dương Lê", number: null },
       { name: "Phạm Vũ Long", number: null },
+      { name: "Võ Xuân Thời", number: null },
     ],
   },
 ];
