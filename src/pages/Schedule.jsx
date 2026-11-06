@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useDraw } from "../context/DrawContext.jsx";
 import { useSharedState } from "../hooks/useSharedState.js";
-// import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import {
   GROUP_STAGE,
   SEMI_FINALS,
@@ -19,33 +18,35 @@ import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import TeamAvatar from "../components/TeamAvatar.jsx";
 import TopScorers from "../components/TopScorers.jsx";
 import { ArrowRightIcon, ResetIcon, TrophyIcon } from "../components/Icons.jsx";
- 
-const SCORE_KEY = "pwc-internal-cup:scores:v1";
-// const rankLabel = (ref) => `${ref.rank === 1 ? "Nhất" : "Nhì"} ${ref.group}`;
+
 const RANK_TEXT = { 1: "Nhất", 2: "Nhì", 3: "Thứ ba" };
-const rankLabel = (ref) => (RANK_TEXT[ref.rank] || "Hạng " + ref.rank) + " " + ref.group; 
+const rankLabel = (ref) => (RANK_TEXT[ref.rank] || "Hạng " + ref.rank) + " " + ref.group;
 
 export default function Schedule() {
   const { groupA, groupB, isComplete } = useDraw();
-  const { isAuthed } = useAuth(); // chỉ admin mới sửa tỉ số
+  const { isAuthed } = useAuth(); // chỉ admin mới sửa
   const readOnly = !isAuthed; // người xem thường: chỉ xem
-  const [scores, setScores] = useSharedState("scores", {});
+  const [rawScores, setScores] = useSharedState("scores", {});
+  const [rawCards, setCards] = useSharedState("cards", {}); // thẻ vàng/đỏ/penalty phân hạng theo đội
   const [confirmOpen, setConfirmOpen] = useState(false);
- 
+
+  const scores = rawScores || {};
+  const cards = rawCards || {};
+
   const groups = useMemo(() => ({ A: groupA, B: groupB }), [groupA, groupB]);
- 
+
   // Đội thắng của 1 trận loại trực tiếp (tỉ số, hoặc luân lưu nếu hòa)
   const getWinner = (match) => {
     const s = getScore(match, scores);
     if (!s) return null;
     if (s.home > s.away) return match.homeTeam;
     if (s.home < s.away) return match.awayTeam;
-    const pen = scores[match.id]?.pen;
+    const pen = scores[match.id] ? scores[match.id].pen : null;
     if (pen === "home") return match.homeTeam;
     if (pen === "away") return match.awayTeam;
     return null;
   };
- 
+
   // Gắn đội thật vào các trận vòng bảng theo vị trí A1/A2/A3, B1/B2/B3
   const groupMatches = useMemo(
     () =>
@@ -53,43 +54,38 @@ export default function Schedule() {
         ...m,
         homeTeam: groups[m.group][m.home - 1]?.team || null,
         awayTeam: groups[m.group][m.away - 1]?.team || null,
-        homeLabel: `${m.group}${m.home}`,
-        awayLabel: `${m.group}${m.away}`,
+        homeLabel: m.group + m.home,
+        awayLabel: m.group + m.away,
       })),
-    [groups],
+    [groups]
   );
- 
+
   // Bảng xếp hạng + trạng thái đã đá xong từng bảng
   const standings = useMemo(() => {
     const result = {};
     ["A", "B"].forEach((g) => {
       const matches = groupMatches.filter((m) => m.group === g);
-      const rows = computeStandings(groups[g], matches, scores);
-      const done =
-        groups[g].length === 3 && matches.every((m) => getScore(m, scores));
-      result[g] = { rows, done };
+      const rows = computeStandings(groups[g], matches, scores, cards);
+      const done = groups[g].length === 3 && matches.every((m) => getScore(m, scores));
+      result[g] = { rows: rows, done: done };
     });
     return result;
-  }, [groupMatches, groups, scores]);
- 
-  // Bán kết: chỉ điền đội khi bảng tương ứng đã đá xong
-  const semiMatches = useMemo(() => {
-    const resolve = (ref) =>
-      standings[ref.group].done
-        ? standings[ref.group].rows[ref.rank - 1]?.team || null
-        : null;
-    return SEMI_FINALS.map((m) => ({
-      ...m,
-      homeTeam: resolve(m.home),
-      awayTeam: resolve(m.away),
-      homeLabel: rankLabel(m.home),
-      awayLabel: rankLabel(m.away),
-    }));
-  }, [standings]);
- 
-// Tranh hạng 5–6: đội thứ ba mỗi bảng (chỉ điền khi bảng đã đá xong)
+  }, [groupMatches, groups, scores, cards]);
+
+  // Lấy đội theo thứ hạng (chỉ khi bảng đã đá xong)
   const resolveRank = (ref) =>
     standings[ref.group].done ? standings[ref.group].rows[ref.rank - 1]?.team || null : null;
+
+  // Bán kết
+  const semiMatches = SEMI_FINALS.map((m) => ({
+    ...m,
+    homeTeam: resolveRank(m.home),
+    awayTeam: resolveRank(m.away),
+    homeLabel: rankLabel(m.home),
+    awayLabel: rankLabel(m.away),
+  }));
+
+  // Tranh hạng 5–6: đội thứ ba mỗi bảng
   const placeMatch = {
     ...PLACEMENT_5TH,
     homeTeam: resolveRank(PLACEMENT_5TH.home),
@@ -104,25 +100,23 @@ export default function Schedule() {
       : placeMatch.homeTeam
     : null;
 
-
   // Chung kết: 2 đội thắng bán kết
-  const semiById = Object.fromEntries(
-    semiMatches.map((m, i) => [m.id, { match: m, no: i + 1 }]),
-  );
+  const semiById = {};
+  semiMatches.forEach((m, i) => {
+    semiById[m.id] = { match: m, no: i + 1 };
+  });
+  const semiHome = semiById[FINAL.home];
+  const semiAway = semiById[FINAL.away];
   const finalMatch = {
     ...FINAL,
-    homeTeam: semiById[FINAL.home]
-      ? getWinner(semiById[FINAL.home].match)
-      : null,
-    awayTeam: semiById[FINAL.away]
-      ? getWinner(semiById[FINAL.away].match)
-      : null,
-    homeLabel: `Thắng BK${semiById[FINAL.home]?.no ?? 1}`,
-    awayLabel: `Thắng BK${semiById[FINAL.away]?.no ?? 2}`,
+    homeTeam: semiHome ? getWinner(semiHome.match) : null,
+    awayTeam: semiAway ? getWinner(semiAway.match) : null,
+    homeLabel: "Thắng BK" + (semiHome ? semiHome.no : 1),
+    awayLabel: "Thắng BK" + (semiAway ? semiAway.no : 2),
   };
   const champion = getWinner(finalMatch);
- 
-  // Tỉ số chỉ hiển thị nếu khớp đúng cặp đội hiện tại (bốc thăm lại → tỉ số cũ tự bị bỏ qua)
+
+  // Tỉ số chỉ hiển thị nếu khớp đúng cặp đội hiện tại
   const scoreOf = (match) => {
     const s = scores[match.id];
     const valid =
@@ -132,100 +126,98 @@ export default function Schedule() {
       s.homeId === match.homeTeam.id &&
       s.awayId === match.awayTeam.id;
     return valid
-      ? { home: s.home, away: s.away, pen: s.pen || null }
+      ? { home: s.home ?? "", away: s.away ?? "", pen: s.pen || null }
       : { home: "", away: "", pen: null };
   };
- 
-  // Lấy bản ghi tỉ số hợp lệ của trận (hoặc tạo mới nếu cặp đội đã đổi)
+
+  // Bản ghi tỉ số hợp lệ của trận (hoặc tạo mới nếu cặp đội đã đổi)
   const baseRecord = (prev, match) => {
     const cur = prev[match.id];
     const valid =
-      cur &&
-      cur.homeId === match.homeTeam.id &&
-      cur.awayId === match.awayTeam.id;
+      cur && cur.homeId === match.homeTeam.id && cur.awayId === match.awayTeam.id;
     return valid
-      ? cur
-      : {
-          homeId: match.homeTeam.id,
-          awayId: match.awayTeam.id,
-          home: "",
-          away: "",
-          pen: null,
-        };
+      ? { ...cur }
+      : { homeId: match.homeTeam.id, awayId: match.awayTeam.id, home: "", away: "", pen: null };
   };
- 
-  // Cập nhật tỉ số (chỉ admin)
+
+  // Cập nhật tỉ số (chỉ admin). side: "home" | "away"
   const updateScore = (match, side, value) => {
     if (!isAuthed || !match.homeTeam || !match.awayTeam) return;
     const clean =
-      value === ""
-        ? ""
-        : String(Math.max(0, Math.min(99, parseInt(value, 10) || 0)));
-    setScores((prev) => ({
-      ...prev,
-      [match.id]: { ...baseRecord(prev, match), [side]: clean },
-    }));
+      value === "" ? "" : String(Math.max(0, Math.min(99, parseInt(value, 10) || 0)));
+    setScores((prev) => {
+      const copy = { ...(prev || {}) };
+      const rec = baseRecord(copy, match);
+      rec[side] = clean;
+      copy[match.id] = rec;
+      return copy;
+    });
   };
- 
-  // Chọn đội thắng luân lưu (chỉ admin, bấm lại lần nữa để bỏ chọn)
+
+  // Chọn đội thắng luân lưu (chỉ admin, bấm lại để bỏ chọn)
   const setPenWinner = (match, side) => {
     if (!isAuthed || !match.homeTeam || !match.awayTeam) return;
     setScores((prev) => {
-      const base = baseRecord(prev, match);
-      return {
-        ...prev,
-        [match.id]: { ...base, pen: base.pen === side ? null : side },
-      };
+      const copy = { ...(prev || {}) };
+      const rec = baseRecord(copy, match);
+      rec.pen = rec.pen === side ? null : side;
+      copy[match.id] = rec;
+      return copy;
     });
   };
- 
+
+  // Cộng/trừ thẻ & penalty phân hạng (chỉ admin). type: "y" vàng, "r" đỏ, "p" penalty
+  const updateCard = (teamId, type, delta) => {
+    if (!isAuthed) return;
+    setCards((prev) => {
+      const copy = { ...(prev || {}) };
+      const cur = copy[teamId] || {};
+      const team = { y: Number(cur.y) || 0, r: Number(cur.r) || 0, p: Number(cur.p) || 0 };
+      team[type] = Math.max(0, (team[type] || 0) + delta);
+      copy[teamId] = team;
+      return copy;
+    });
+  };
+
   const rounds = [1, 2, 3];
- 
+
   return (
     <div className="bg-pwc-light">
       {/* Tiêu đề trang */}
       <section className="bg-pwc-black text-white">
         <div className="container-page py-10 sm:py-12">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-pwc-amber">
-            Lịch thi đấu
-          </p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-pwc-amber">Lịch thi đấu</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
             Vòng bảng, Bán kết & Chung kết
           </h1>
           <p className="mt-3 max-w-2xl text-white/75">
-            Mỗi bảng đá vòng tròn 3 trận. Nhất A gặp Nhì B, Nhất B gặp Nhì A ở
-            bán kết. 2 đội thắng bán kết gặp nhau ở chung kết.
-            {isAuthed
-              ? " Nhập tỉ số để các vòng tự cập nhật."
-              : " Tỉ số được Ban tổ chức cập nhật trực tiếp."}
+            Mỗi bảng đá vòng tròn 3 trận. Nhất A gặp Nhì B, Nhất B gặp Nhì A ở bán kết. 2 đội thắng bán kết gặp
+            nhau ở chung kết.
+            {isAuthed ? " Nhập tỉ số để các vòng tự cập nhật." : " Tỉ số được Ban tổ chức cập nhật trực tiếp."}
           </p>
         </div>
       </section>
- 
+
       <div className="container-page space-y-10 py-10">
         {/* Chưa bốc thăm xong */}
         {!isComplete && (
           <div className="flex flex-col items-start justify-between gap-4 rounded-xl border-l-4 border-pwc-amber bg-white p-5 shadow-card sm:flex-row sm:items-center">
             <p className="text-pwc-dark">
-              Chưa bốc thăm xong – lịch đang hiển thị theo vị trí (A1, A2…). Tên
-              đội sẽ tự điền sau khi bốc thăm.
+              Chưa bốc thăm xong – lịch đang hiển thị theo vị trí (A1, A2…). Tên đội sẽ tự điền sau khi bốc thăm.
             </p>
             <Link to="/draw" className="btn-primary shrink-0">
               Đến trang bốc thăm <ArrowRightIcon className="h-4 w-4" />
             </Link>
           </div>
         )}
- 
+
         {/* Vòng bảng */}
         <section aria-labelledby="group-stage-title">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="eyebrow">Vòng bảng</p>
-              <h2 id="group-stage-title" className="section-title">
-                Lịch các lượt đấu
-              </h2>
+              <h2 id="group-stage-title" className="section-title">Lịch các lượt đấu</h2>
             </div>
-            {/* Nút xóa tỉ số: chỉ admin thấy */}
             {isAuthed && (
               <button
                 type="button"
@@ -237,7 +229,7 @@ export default function Schedule() {
               </button>
             )}
           </div>
- 
+
           <div className="mt-6 space-y-6">
             {rounds.map((r) => (
               <div key={r}>
@@ -252,7 +244,7 @@ export default function Schedule() {
                         key={m.id}
                         match={m}
                         readOnly={readOnly}
-                        tag={`Bảng ${m.group}`}
+                        tag={"Bảng " + m.group}
                         tagDark={m.group === "B"}
                         score={scoreOf(m)}
                         onChange={(side, v) => updateScore(m, side, v)}
@@ -263,25 +255,21 @@ export default function Schedule() {
             ))}
           </div>
         </section>
- 
+
         {/* Bảng xếp hạng */}
         <section aria-labelledby="standings-title">
           <p className="eyebrow">Xếp hạng</p>
-          <h2 id="standings-title" className="section-title">
-            Bảng xếp hạng
-          </h2>
+          <h2 id="standings-title" className="section-title">Bảng xếp hạng</h2>
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
-            <StandingsTable group="A" rows={standings.A.rows} />
-            <StandingsTable group="B" rows={standings.B.rows} />
+            <StandingsTable group="A" rows={standings.A.rows} canEdit={isAuthed} onCardChange={updateCard} />
+            <StandingsTable group="B" rows={standings.B.rows} canEdit={isAuthed} onCardChange={updateCard} />
           </div>
         </section>
 
-         {/* Tranh hạng 5–6 */}
+        {/* Tranh hạng 5–6 */}
         <section aria-labelledby="place5-title">
           <p className="eyebrow">Xếp hạng</p>
-          <h2 id="place5-title" className="section-title">
-            Tranh hạng phong cách
-          </h2>
+          <h2 id="place5-title" className="section-title">Tranh hạng phong cách</h2>
           <p className="mt-2 text-sm text-pwc-dark/70">
             Đội thứ ba mỗi bảng gặp nhau. Đội được điền tự động khi bảng tương ứng đá xong cả 3 trận.
           </p>
@@ -300,20 +288,18 @@ export default function Schedule() {
           </div>
           {place5 && (
             <p className="mx-auto mt-3 max-w-2xl rounded-lg bg-white px-4 py-3 text-center text-sm font-semibold text-pwc-dark shadow-card">
-              {"Hạng 5: " + place5.name + "  ·  Hạng 6: " + (place6?.name || "")}
+              {"Hạng 5: " + place5.name + "  ·  Hạng 6: " + (place6 ? place6.name : "")}
             </p>
           )}
         </section>
- 
+
         {/* Bán kết */}
         <section aria-labelledby="semi-title">
           <p className="eyebrow">Knock-out</p>
-          <h2 id="semi-title" className="section-title">
-            Bán kết
-          </h2>
+          <h2 id="semi-title" className="section-title">Bán kết</h2>
           <p className="mt-2 text-sm text-pwc-dark/70">
-            Đội sẽ được điền tự động khi bảng tương ứng đá xong cả 3 trận. Nếu
-            hòa, đội thắng được xác định bằng luân lưu.
+            Đội sẽ được điền tự động khi bảng tương ứng đá xong cả 3 trận. Nếu hòa, đội thắng được xác định bằng
+            luân lưu.
           </p>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {semiMatches.map((m, i) => (
@@ -321,7 +307,7 @@ export default function Schedule() {
                 key={m.id}
                 match={m}
                 readOnly={readOnly}
-                tag={`Bán kết ${i + 1}`}
+                tag={"Bán kết " + (i + 1)}
                 tagDark
                 knockout
                 winnerId={getWinner(m)?.id}
@@ -332,16 +318,12 @@ export default function Schedule() {
             ))}
           </div>
         </section>
- 
+
         {/* Chung kết */}
         <section aria-labelledby="final-title">
           <p className="eyebrow">Trận cuối</p>
-          <h2 id="final-title" className="section-title">
-            Chung kết
-          </h2>
-          <p className="mt-2 text-sm text-pwc-dark/70">
-            2 đội thắng bán kết sẽ được điền tự động.
-          </p>
+          <h2 id="final-title" className="section-title">Chung kết</h2>
+          <p className="mt-2 text-sm text-pwc-dark/70">2 đội thắng bán kết sẽ được điền tự động.</p>
           <div className="mx-auto mt-6 max-w-2xl">
             <MatchCard
               match={finalMatch}
@@ -354,7 +336,7 @@ export default function Schedule() {
               onPenPick={(side) => setPenWinner(finalMatch, side)}
             />
           </div>
- 
+
           {/* Nhà vô địch */}
           {champion && (
             <motion.div
@@ -365,32 +347,29 @@ export default function Schedule() {
               className="mx-auto mt-6 flex max-w-2xl flex-col items-center gap-3 rounded-2xl bg-gradient-to-br from-pwc-black via-pwc-dark to-pwc-black px-6 py-8 text-center text-white shadow-2xl"
             >
               <TrophyIcon className="h-12 w-12 text-pwc-amber" />
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-pwc-amber">
-                Nhà vô địch
-              </p>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-pwc-amber">Nhà vô địch</p>
               <div className="flex items-center gap-3">
                 <TeamAvatar team={champion} size="lg" />
-                <p className="text-3xl font-black sm:text-4xl">
-                  {champion.name}
-                </p>
+                <p className="text-3xl font-black sm:text-4xl">{champion.name}</p>
               </div>
             </motion.div>
           )}
         </section>
- 
+
         {/* Vua phá lưới */}
         <TopScorers />
       </div>
- 
-      {/* Hộp xác nhận xóa tỉ số: chỉ admin dùng */}
+
+      {/* Hộp xác nhận xóa tỉ số + thẻ phạt: chỉ admin dùng */}
       {isAuthed && (
         <ConfirmDialog
           open={confirmOpen}
           title="Xóa toàn bộ tỉ số?"
-          message="Tất cả tỉ số vòng bảng, bán kết và chung kết sẽ bị xóa. Kết quả bốc thăm vẫn được giữ nguyên."
+          message="Tất cả tỉ số, thẻ phạt và penalty phân hạng sẽ bị xóa. Kết quả bốc thăm vẫn được giữ nguyên."
           confirmLabel="Xóa"
           onConfirm={() => {
             setScores({});
+            setCards({});
             setConfirmOpen(false);
           }}
           onCancel={() => setConfirmOpen(false)}
