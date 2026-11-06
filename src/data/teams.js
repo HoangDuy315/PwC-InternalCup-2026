@@ -11,7 +11,7 @@
 const RAW_TEAMS = [
   {
     id: "team-1",
-    name: "Team Báo",
+    name: "Báo",
     captain: "Huỳnh Nguyên Trí (mập)",
     color: "#D04A02",
     logo: null,
@@ -36,7 +36,7 @@ const RAW_TEAMS = [
   },
   {
     id: "team-2",
-    name: "Team RAS",
+    name: "RAS",
     captain: "Phó Đức Giang",
     color: "#2D2D2D",
     logo: null,
