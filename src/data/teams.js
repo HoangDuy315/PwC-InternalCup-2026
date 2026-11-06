@@ -12,12 +12,12 @@ const RAW_TEAMS = [
   {
     id: "team-1",
     name: "Báo",
-    captain: "Huỳnh Nguyên Trí (mập)",
+    captain: "Denis Gin",
     color: "#D04A02",
     logo: null,
     players: [
       { name: "Bùi Ngọc Đức", number: 14 },
-      { name: "Huỳnh Nguyên Trí (mập)", number: 10 },
+      { name: "Denis Gin", number: 10 },
       { name: "Lê Hoàng Nam", number: 8 },
       { name: "Ngô Văn Vỹ", number: 43 },
       { name: "Nguyễn Hoàng Anh", number: 5 },
@@ -124,7 +124,7 @@ const RAW_TEAMS = [
       { name: "Nguyễn Phúc Yên", number: null },
       { name: "Phạm Minh Khánh", number: null },
       { name: "Cường Tesu", number: null },
-      { name: "Hạ Dương Lê", number: null },
+      { name: "Lê Hà Dương", number: null },
       { name: "Phạm Vũ Long", number: null },
       { name: "Võ Xuân Thời", number: null },
     ],
