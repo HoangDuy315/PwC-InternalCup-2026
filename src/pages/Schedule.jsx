@@ -280,7 +280,7 @@ export default function Schedule() {
         <section aria-labelledby="place5-title">
           <p className="eyebrow">Xếp hạng</p>
           <h2 id="place5-title" className="section-title">
-            Tranh hạng 5–6
+            Tranh hạng phong cách
           </h2>
           <p className="mt-2 text-sm text-pwc-dark/70">
             Đội thứ ba mỗi bảng gặp nhau. Đội được điền tự động khi bảng tương ứng đá xong cả 3 trận.
