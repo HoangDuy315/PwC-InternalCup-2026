@@ -58,7 +58,10 @@ export default function Draw() {
   // ===== Shuffle: thứ tự hiển thị các ô trên vòng quay =====
  
   const [wheelOrder, setWheelOrder] = useSharedState("wheelOrder", []);
-  const [, setGoals] = useSharedState("goals", {}); // dùng để reset vua phá lưới
+  // const [, setGoals] = useSharedState("goals", {}); // dùng để reset vua phá lưới
+  const [, setGoals] = useSharedState("matchGoals", {}); // reset bốc thăm → xóa người ghi bàn
+
+
   const wheelControls = useAnimationControls();
  
   // Sắp xếp các đội còn lại theo thứ tự đã shuffle (đội chưa có trong order thì xếp theo teams.js)
