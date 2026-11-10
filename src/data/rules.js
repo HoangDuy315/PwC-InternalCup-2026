@@ -99,7 +99,7 @@ export const RULES = {
     {
       title: "Ảnh giải đấu",
       description: "Toàn bộ hình ảnh các trận đấu, hoạt động bên lề và lễ trao giải PwC Internal All Stars Cup 2026.",
-      url: "https://drive.google.com/",
+      url: "https://drive.google.com/drive/folders/1TwNgAosMhlNDRsgOmgIHdNHE-t32VtzS?usp=sharing",
     },
   ],
 };
